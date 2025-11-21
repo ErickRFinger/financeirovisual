@@ -177,6 +177,14 @@ router.post('/login', [
       return res.status(401).json({ error: 'Email ou senha inválidos' });
     }
 
+    // Verificar se JWT_SECRET está configurado
+    if (!process.env.JWT_SECRET) {
+      console.error('❌ JWT_SECRET não configurado!');
+      return res.status(500).json({ 
+        error: 'Erro de configuração do servidor. JWT_SECRET não está definido.' 
+      });
+    }
+
     // Gerar token
     const token = jwt.sign(
       { userId: user.id, email: user.email },

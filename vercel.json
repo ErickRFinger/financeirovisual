@@ -14,7 +14,8 @@
   ],
   "functions": {
     "api/index.js": {
-      "includeFiles": "backend/**"
+      "includeFiles": "backend/**",
+      "runtime": "nodejs18.x"
     }
   },
   "env": {

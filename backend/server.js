@@ -12,6 +12,16 @@ import gastosRecorrentesRoutes from './routes/gastos-recorrentes.js';
 
 dotenv.config();
 
+// Verificar variáveis de ambiente críticas
+const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error('❌ Variáveis de ambiente faltando:', missingEnvVars.join(', '));
+  console.error('⚠️  Configure essas variáveis no Vercel (Settings → Environment Variables)');
+  // Não encerrar o processo no Vercel, apenas logar o erro
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -160,12 +170,24 @@ app.use((err, req, res, next) => {
   // Determinar status code apropriado
   const statusCode = err.statusCode || err.status || 500;
   
+  // Garantir que sempre retornamos uma string de erro
+  let errorMessage = 'Erro interno do servidor';
+  
+  if (err.message) {
+    errorMessage = typeof err.message === 'string' ? err.message : JSON.stringify(err.message);
+  }
+  
+  // Em produção, não expor detalhes do erro
+  if (process.env.NODE_ENV === 'production') {
+    errorMessage = 'Ocorreu um erro ao processar sua requisição. Tente novamente.';
+  }
+  
   res.status(statusCode).json({ 
-    error: 'Erro interno do servidor',
-    message: process.env.NODE_ENV === 'production' 
-      ? 'Ocorreu um erro ao processar sua requisição' 
-      : err.message,
-    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+    error: errorMessage,
+    ...(process.env.NODE_ENV !== 'production' && { 
+      details: err.message,
+      stack: err.stack 
+    })
   });
 });
 
