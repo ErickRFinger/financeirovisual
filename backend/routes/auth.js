@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
 import supabase from '../database/db.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ router.post('/register', [
   body('nome').trim().isLength({ min: 2 }).withMessage('Nome deve ter pelo menos 2 caracteres'),
   body('email').isEmail().withMessage('Email inválido'),
   body('senha').isLength({ min: 6 }).withMessage('Senha deve ter pelo menos 6 caracteres')
-], async (req, res) => {
+], asyncHandler(async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -96,6 +97,12 @@ router.post('/register', [
 
     await supabase.from('categorias').insert(categoriasPadrao);
 
+    // Verificar se JWT_SECRET está configurado
+    if (!process.env.JWT_SECRET) {
+      console.error('❌ JWT_SECRET não configurado!');
+      throw new Error('Erro de configuração do servidor. JWT_SECRET não está definido.');
+    }
+
     // Gerar token
     const token = jwt.sign(
       { userId: newUser.id, email },
@@ -114,15 +121,27 @@ router.post('/register', [
     });
   } catch (error) {
     console.error('Erro ao registrar usuário:', error);
-    res.status(500).json({ error: 'Erro ao registrar usuário' });
+    console.error('Stack:', error.stack);
+    
+    // Garantir que sempre retornamos uma string de erro
+    let errorMessage = 'Erro ao registrar usuário';
+    
+    if (error.message) {
+      errorMessage = typeof error.message === 'string' ? error.message : JSON.stringify(error.message);
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+    
+    // Passar o erro para o middleware de tratamento de erros
+    throw new Error(errorMessage);
   }
-});
+}));
 
 // Login
 router.post('/login', [
   body('email').isEmail().withMessage('Email inválido'),
   body('senha').notEmpty().withMessage('Senha é obrigatória')
-], async (req, res) => {
+], asyncHandler(async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
