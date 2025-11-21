@@ -4,6 +4,9 @@
   "description": "Sistema completo de controle financeiro pessoal",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "18.x"
+  },
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && npm run dev",
