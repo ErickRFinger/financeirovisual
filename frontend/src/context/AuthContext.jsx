@@ -75,8 +75,8 @@ export function AuthProvider({ children }) {
       let errorMessage = 'Erro ao fazer login'
       
       if (error.response) {
-        // Erro do servidor
-        errorMessage = error.response.data?.error || errorMessage
+        // Erro do servidor - usar a mensagem já processada pelo interceptor
+        errorMessage = error.message || 'Erro ao fazer login'
       } else if (error.request) {
         // Erro de conexão
         errorMessage = 'Não foi possível conectar ao servidor. Verifique sua conexão.'
@@ -133,7 +133,8 @@ export function AuthProvider({ children }) {
       let errorMessage = 'Erro ao registrar'
       
       if (error.response) {
-        errorMessage = error.response.data?.error || errorMessage
+        // Erro do servidor - usar a mensagem já processada pelo interceptor
+        errorMessage = error.message || 'Erro ao registrar'
       } else if (error.request) {
         errorMessage = 'Não foi possível conectar ao servidor. Verifique sua conexão.'
       } else {

@@ -194,7 +194,18 @@ router.post('/login', [
     });
   } catch (error) {
     console.error('Erro ao fazer login:', error);
-    res.status(500).json({ error: 'Erro interno do servidor. Tente novamente.' });
+    console.error('Stack:', error.stack);
+    
+    // Garantir que sempre retornamos uma string de erro
+    let errorMessage = 'Erro interno do servidor. Tente novamente.';
+    
+    if (error.message) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+    
+    res.status(500).json({ error: errorMessage });
   }
 });
 

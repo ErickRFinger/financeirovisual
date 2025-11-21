@@ -8,6 +8,43 @@ const api = axios.create({
   timeout: 10000 // 10 segundos
 })
 
+// Função auxiliar para extrair mensagem de erro de forma segura
+function extractErrorMessage(data, defaultMessage = 'Erro desconhecido') {
+  if (!data) return defaultMessage
+  
+  // Se já é uma string, retorna
+  if (typeof data === 'string') return data
+  
+  // Se tem propriedade error
+  if (data.error) {
+    if (typeof data.error === 'string') return data.error
+    if (data.error.message) return data.error.message
+    return JSON.stringify(data.error)
+  }
+  
+  // Se tem array de errors
+  if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+    const firstError = data.errors[0]
+    if (typeof firstError === 'string') return firstError
+    if (firstError.msg) return firstError.msg
+    if (firstError.message) return firstError.message
+    return JSON.stringify(firstError)
+  }
+  
+  // Se tem message
+  if (data.message) {
+    if (typeof data.message === 'string') return data.message
+    return JSON.stringify(data.message)
+  }
+  
+  // Último recurso: stringify do objeto
+  try {
+    return JSON.stringify(data)
+  } catch {
+    return defaultMessage
+  }
+}
+
 // Interceptor de requisição - adiciona token automaticamente
 api.interceptors.request.use(
   (config) => {
@@ -51,15 +88,16 @@ api.interceptors.response.use(
         return Promise.reject(new Error('Sessão expirada. Faça login novamente.'))
       } else if (status === 404) {
         // Rota não encontrada
-        const errorMsg = data?.error || `Rota não encontrada: ${url}`
+        const errorMsg = extractErrorMessage(data, `Rota não encontrada: ${url}`)
         console.error(`🔍 Rota não encontrada: ${method} ${url}`)
         return Promise.reject(new Error(errorMsg))
       } else if (status >= 500) {
         // Erro do servidor
-        return Promise.reject(new Error(data?.error || 'Erro interno do servidor'))
+        const errorMsg = extractErrorMessage(data, 'Erro interno do servidor')
+        return Promise.reject(new Error(errorMsg))
       } else {
         // Outros erros (400, 403, etc)
-        const errorMsg = data?.error || data?.errors?.[0]?.msg || `Erro ${status}: ${data?.message || 'Requisição inválida'}`
+        const errorMsg = extractErrorMessage(data, `Erro ${status}: Requisição inválida`)
         return Promise.reject(new Error(errorMsg))
       }
     } else if (error.request) {
