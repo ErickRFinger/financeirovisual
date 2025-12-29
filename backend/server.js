@@ -31,17 +31,17 @@ const corsOptions = {
   origin: function (origin, callback) {
     // Permitir requisições sem origin (mobile apps, Postman, etc)
     if (!origin) return callback(null, true);
-    
+
     // Permitir localhost em desenvolvimento
     if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
       return callback(null, true);
     }
-    
+
     // Permitir domínios do Vercel
     if (origin.includes('vercel.app') || origin.includes('vercel.com')) {
       return callback(null, true);
     }
-    
+
     // Em produção, permitir apenas o domínio do Vercel
     callback(null, true);
   },
@@ -114,12 +114,12 @@ app.use((req, res, next) => {
   if (!req.path.startsWith('/api')) {
     return next();
   }
-  
+
   // Se a resposta já foi enviada, alguma rota processou a requisição
   if (res.headersSent) {
     return next();
   }
-  
+
   // Log detalhado para debug
   console.error(`\n❌ [404] Rota não encontrada`);
   console.error(`   Method: ${req.method}`);
@@ -127,7 +127,7 @@ app.use((req, res, next) => {
   console.error(`   Original URL: ${req.originalUrl}`);
   console.error(`   Base URL: ${req.baseUrl}`);
   console.error(`   Headers sent: ${res.headersSent}`);
-  
+
   // Verificar todas as rotas registradas
   console.error(`\n   Rotas registradas:`);
   let foundApiRoutes = false;
@@ -140,12 +140,12 @@ app.use((req, res, next) => {
       }
     }
   });
-  
+
   if (!foundApiRoutes) {
     console.error(`   ⚠️ NENHUMA ROTA DA API ENCONTRADA NO STACK!`);
   }
-  
-  return res.status(404).json({ 
+
+  return res.status(404).json({
     error: 'Rota não encontrada',
     path: req.originalUrl,
     method: req.method,
@@ -159,47 +159,47 @@ app.use((err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
   }
-  
+
   console.error('\n❌ [ERRO GLOBAL] Erro não tratado:');
   console.error('   Mensagem:', err.message);
   console.error('   Tipo:', err.name);
   console.error('   URL:', req.originalUrl);
   console.error('   Method:', req.method);
   console.error('   Stack:', err.stack);
-  
+
   // Determinar status code apropriado
   const statusCode = err.statusCode || err.status || 500;
-  
+
   // Garantir que sempre retornamos uma string de erro
   let errorMessage = 'Erro interno do servidor';
-  
+
   if (err.message) {
     errorMessage = typeof err.message === 'string' ? err.message : JSON.stringify(err.message);
   }
-  
+
   // Em produção, não expor detalhes do erro
   if (process.env.NODE_ENV === 'production') {
     errorMessage = 'Ocorreu um erro ao processar sua requisição. Tente novamente.';
   }
-  
-  res.status(statusCode).json({ 
+
+  res.status(statusCode).json({
     error: errorMessage,
-    ...(process.env.NODE_ENV !== 'production' && { 
+    ...(process.env.NODE_ENV !== 'production' && {
       details: err.message,
-      stack: err.stack 
+      stack: err.stack
     })
   });
 });
 
-// Exportar app para uso no Vercel
-export default app;
-
 // Iniciar servidor apenas se não estiver no Vercel
 // No Vercel, o servidor é gerenciado automaticamente
-if (process.env.VERCEL !== '1' && !process.env.VERCEL_ENV) {
-  app.listen(PORT, () => {
+if (!process.env.VERCEL && !process.env.VERCEL_ENV && process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, async () => {
     console.log(`🚀 Servidor rodando na porta ${PORT}`);
-    console.log(`📊 Banco de dados inicializado`);
+
+    // Testar conexão com banco
+    await import('./database/db.js').then(({ testConnection }) => testConnection());
+
     console.log(`📋 Rotas disponíveis:`);
     console.log(`   - GET  /api/health`);
     console.log(`   - POST /api/auth/register`);
@@ -218,3 +218,6 @@ if (process.env.VERCEL !== '1' && !process.env.VERCEL_ENV) {
     process.exit(0);
   });
 }
+
+// Exportar app para uso no Vercel (deve ser a última linha)
+export default app;

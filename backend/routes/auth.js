@@ -234,7 +234,7 @@ router.post('/login', [
     
     res.status(500).json({ error: errorMessage });
   }
-});
+}));
 
 // Verificar token
 router.get('/verify', async (req, res) => {
